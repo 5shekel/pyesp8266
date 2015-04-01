@@ -46,7 +46,7 @@ if len(sys.argv) != 4:
 	sys.exit()
 
 port = sys.argv[1]
-speed = 9600
+speed = 115200
 ssid = sys.argv[2]
 pwd = sys.argv[3]
 

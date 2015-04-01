@@ -6,6 +6,7 @@ import sys, serial
 from time import *
 import datetime, string
 
+
 def enum(**enums):
     return type('Enum', (), enums)
 
@@ -25,7 +26,7 @@ def send_cmd( sCmd, waitTm=1, retry=5, delay=1):
 		while( lp < waitTm or 'busy' in ret):
 			while( ser.inWaiting() ):
 				ret = ser.readline().strip( "\r\n" )
-				print( ret )
+				print( "Command result: %s" % ret )
 				lp = 0
 			if( ret in Status.OK ): break
 			#if( ret == 'ready' ): break
@@ -36,7 +37,6 @@ def send_cmd( sCmd, waitTm=1, retry=5, delay=1):
 		sleep(delay)
 		if( ret in Status.OK ): break
 
-	print( "Command result: %s" % ret )
 	return ret
 
 def send_response(response, cid='0'):
@@ -78,30 +78,47 @@ def process_request(response):
 	if has_link:
 		# process response
 		send_response(response, cid)
+		print("got pinged")
 
-if len(sys.argv) != 4:
-	print "Usage: esp8266test.py port ssid password"
-	sys.exit()
 
+def init():
+	same = False
+
+	if len(sys.argv) == 3 and sys.argv[2] == '-same':
+		print "same wifi, connecting..."
+		same = True
+	elif len(sys.argv) != 4:
+		print "Usage: esp8266test.py port ssid password"
+		sys.exit()
+	else:    
+	    ssid = sys.argv[2]
+	    pwd = sys.argv[3]
+	if not same:
+		changeWifi()
+
+p = 80
 port = sys.argv[1]
 speed = 115200
-ssid = sys.argv[2]
-pwd = sys.argv[3]
-p = 80
-
 ser = serial.Serial(port,speed)
 if ser.isOpen():
     ser.close()
 ser.open()
 ser.isOpen()
 
-send_cmd( "AT" )
-send_cmd( "AT+CWMODE=1" ) # set device mode (1=client, 2=AP, 3=both)
-send_cmd( "AT+CWLAP", 30) # scan for WiFi hotspots
-send_cmd( "AT+CWJAP=\""+ssid+"\",\""+pwd+"\"", 5 ) # connect
-send_cmd( "AT+CIFSR", 5) # check IP address
+init()
 
-send_cmd( "AT+CIPMUX=1" ) # multiple connection mode
+
+def changeWifi():
+	send_cmd( "AT+CWMODE=1" ) # set device mode (1=client, 2=AP, 3=both)
+	send_cmd( "AT+RST");
+	send_cmd( "AT+CWLAP", 30) # scan for WiFi hotspots
+	send_cmd( "AT+CWJAP=\""+ssid+"\",\""+pwd+"\"", 5 ) # connect
+	send_cmd( "AT+CIFSR", 5) # check IP address
+	send_cmd( "AT+CIPMUX=1" ) # multiple connection mode
+
+
+
+send_cmd( "AT" )
 send_cmd("AT+CIPSERVER=1," + str(p))
 
 # process requests
